@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:;">
+<meta name="referrer" content="no-referrer">
+<title>Neles Stundenplan</title>
+<style>
+:root{--bg:#FBF5EA;--ink:#3B2A20;--primary:#B5562B;--accent:#E3A928;--green:#6F8F3A;--soft:#F3E6D3}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:"Nunito",ui-rounded,"SF Pro Rounded","Segoe UI",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);font-size:18px;line-height:1.4}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:980px;margin:0 auto;padding:16px 14px 40px}
+header{display:flex;align-items:center;gap:14px;background:#fff;border:3px solid var(--ink);border-radius:24px;padding:10px 16px;box-shadow:4px 4px 0 var(--ink)}
+header svg{width:84px;height:100px;flex:none}
+header h1{margin:0;font-size:1.45rem;color:var(--primary)}
+header p{margin:2px 0 0;font-size:1rem}
+nav{display:flex;gap:8px;margin:16px 0;flex-wrap:wrap}
+nav button{flex:1 1 auto;min-height:52px;border:3px solid var(--ink);border-radius:16px;background:#fff;font-weight:800;cursor:pointer;padding:6px 12px}
+nav button[aria-selected="true"]{background:var(--primary);color:#fff}
+nav button.parent{flex:0 0 auto;background:var(--soft)}
+nav button.parent[aria-selected="true"]{background:var(--ink)}
+section{display:none;background:#fff;border:3px solid var(--ink);border-radius:24px;padding:16px;box-shadow:4px 4px 0 var(--ink)}
+section.on{display:block}
+h2{margin:0 0 12px;font-size:1.3rem}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:separate;border-spacing:6px;width:100%;min-width:620px}
+th{font-size:.95rem;padding:6px 4px;border-radius:12px;background:var(--soft)}
+th.today{background:var(--accent)}
+td.num{font-weight:800;text-align:center;width:52px;color:var(--primary)}
+td.cell{height:64px;border:2px dashed #c9bfb3;border-radius:14px;text-align:center;cursor:pointer;padding:4px;font-size:.92rem;font-weight:700;word-break:break-word}
+td.cell.filled{border-style:solid;border-color:var(--ink)}
+td.cell:hover,td.cell:focus{outline:3px solid var(--accent)}
+td.cell .e{display:block;font-size:1.35rem}
+.row-btns{display:flex;gap:8px;margin-top:10px}
+.btn{min-height:48px;border:3px solid var(--ink);border-radius:14px;background:#fff;font-weight:800;padding:6px 16px;cursor:pointer}
+.btn.main{background:var(--primary);color:#fff}
+.btn.warn{background:#fff;color:#b3261e;border-color:#b3261e}
+.btn:disabled{opacity:.45;cursor:default}
+.hw-form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.hw-form input{flex:1 1 220px;min-height:52px;border:3px solid var(--ink);border-radius:14px;padding:8px 12px}
+.hw-form select{min-height:52px;border:3px solid var(--ink);border-radius:14px;padding:8px;background:#fff}
+ul.hw{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+ul.hw li{display:flex;align-items:center;gap:10px;border:2px solid var(--ink);border-radius:14px;padding:8px 10px;background:#fff}
+ul.hw li.done{background:var(--soft)}
+ul.hw li.done .txt{text-decoration:line-through;opacity:.65}
+ul.hw .chk{width:44px;height:44px;flex:none;border:3px solid var(--ink);border-radius:12px;background:#fff;font-size:1.4rem;cursor:pointer}
+ul.hw li.done .chk{background:var(--green);color:#fff}
+ul.hw .tag{font-size:.8rem;font-weight:800;border-radius:10px;padding:2px 8px;white-space:nowrap}
+ul.hw .txt{flex:1;word-break:break-word}
+ul.hw .del{border:none;background:none;font-size:1.3rem;cursor:pointer;min-width:44px;min-height:44px}
+.empty{padding:18px;text-align:center;border:2px dashed #c9bfb3;border-radius:14px}
+label.tgl{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:.95rem}
+label.tgl input{width:22px;height:22px}
+.stickers{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:8px;margin-top:12px}
+.stickers span{font-size:2.2rem;text-align:center;background:var(--soft);border-radius:14px;padding:4px}
+.big{font-size:1.25rem;font-weight:800}
+.box{border:2px solid var(--ink);border-radius:16px;padding:12px 14px;margin:12px 0;background:var(--bg)}
+.box h3{margin:0 0 6px;font-size:1.05rem}
+.box p{margin:4px 0;font-size:.98rem}
+.banner{background:#fff4d6;border:3px solid #b07b00;border-radius:16px;padding:10px 14px;margin:12px 0;font-weight:700}
+footer{margin-top:22px;text-align:center;font-size:.85rem;opacity:.75}
+/* Dialog */
+.overlay{position:fixed;inset:0;background:rgba(30,20,10,.45);display:flex;align-items:center;justify-content:center;padding:14px;z-index:20}
+.dialog{background:#fff;border:3px solid var(--ink);border-radius:24px;max-width:520px;width:100%;max-height:92vh;overflow:auto;padding:18px;box-shadow:6px 6px 0 var(--ink)}
+.dialog h3{margin:0 0 12px;font-size:1.25rem}
+.subjects{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.subjects button{min-height:64px;border:3px solid var(--ink);border-radius:14px;cursor:pointer;font-weight:800;font-size:.95rem;padding:4px}
+.subjects .e{display:block;font-size:1.4rem}
+.dialog input[type=text],.dialog input[type=number]{width:100%;min-height:52px;border:3px solid var(--ink);border-radius:14px;padding:8px 12px;margin:6px 0}
+.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:14px}
+.msg{min-height:1.4em;font-weight:700;color:#b3261e;margin:6px 0}
+.pad{display:grid;grid-template-columns:repeat(3,72px);gap:10px;justify-content:center;margin:12px 0}
+.pad button{height:64px;border:3px solid var(--ink);border-radius:16px;background:#fff;font-size:1.5rem;font-weight:800;cursor:pointer}
+.dots{display:flex;gap:12px;justify-content:center;margin:8px 0}
+.dots i{width:20px;height:20px;border-radius:50%;border:3px solid var(--ink)}
+.dots i.f{background:var(--primary)}
+.cheer{text-align:center}
+.cheer svg{width:130px;height:156px}
+.cheer .s{font-size:3.2rem;animation:pop .6s ease-out}
+@keyframes pop{0%{transform:scale(.2) rotate(-30deg)}70%{transform:scale(1.25)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.cheer .s{animation:none}}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:14px;font-weight:700;z-index:30}
+@media print{
+  header,nav,footer,.row-btns,.banner,#hw,#st,#pa{display:none!important}
+  body{background:#fff}
+  section{box-shadow:none;border:none;display:none}
+  #sp{display:block!important}
+  table{min-width:0}
+  td.cell{border:1.5px solid #000!important;height:56px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg viewBox="0 0 410 470" aria-hidden="true"><g class="nele">
+  <!-- Schwanz (hinter dem Körper) -->
+  <path d="M250 430 C 360 440, 400 330, 360 250 C 330 190, 360 120, 320 70 C 290 35, 230 45, 225 95
+           C 222 130, 262 135, 268 110 C 272 92, 255 85, 248 98
+           C 275 70, 310 90, 310 130 C 312 190, 280 230, 300 300 C 315 360, 290 400, 250 400 Z"
+        fill="#B5562B" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M300 160 C 320 200, 300 240, 318 290" fill="none" stroke="#3B2A20" stroke-width="3.0" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M330 120 C 345 150, 338 180, 345 210" fill="none" stroke="#3B2A20" stroke-width="3.0" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Körper -->
+  <path d="M120 300 C 100 360, 110 430, 185 440 C 260 450, 290 380, 265 300 C 250 260, 140 255, 120 300 Z"
+        fill="#B5562B" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Bauch -->
+  <path d="M150 310 C 135 360, 145 420, 190 425 C 240 428, 250 370, 238 312 C 225 285, 160 285, 150 310 Z"
+        fill="#F3D9B8" stroke="#3B2A20" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Schürze -->
+  <path d="M148 330 L 240 330 L 252 418 C 220 432, 170 432, 138 418 Z" fill="#6F8F3A" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M200 380 L 240 380 L 238 412 L 202 412 Z" fill="#6F8F3A" stroke="#3B2A20" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Bleistift + Pinsel in der Tasche -->
+  <path d="M210 381 L 214 352 L 222 346 L 224 356 L 220 383" fill="#E3A928" stroke="#3B2A20" stroke-width="3.0" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M230 381 L 238 358" fill="none" stroke="#3B2A20" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M234 360 C 232 346, 246 346, 243 362 Z" fill="#8FB8D8" stroke="#3B2A20" stroke-width="3.0" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Füße -->
+  <ellipse cx="150" cy="440" rx="38" ry="16" fill="#B5562B" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <ellipse cx="232" cy="442" rx="38" ry="16" fill="#B5562B" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M130 438 l0 8 M148 440 l0 9 M214 440 l0 8 M232 442 l0 9" stroke="#3B2A20" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Arme mit Eichel -->
+  <path d="M135 312 C 118 335, 145 352, 176 342" fill="#B5562B" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M255 312 C 272 335, 245 352, 214 342" fill="#B5562B" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <ellipse cx="195" cy="338" rx="18" ry="21" fill="#9A6B3A" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M175 332 C 175 312, 215 312, 215 332 Z" fill="#6B4A2A" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M195 314 l2 -9" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Ohren -->
+  <path d="M120 120 C 105 70, 120 45, 128 30 C 140 55, 160 85, 158 112 Z" fill="#B5562B" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M128 30 l-6 -14 M128 30 l4 -16 M128 30 l12 -10" stroke="#3B2A20" stroke-width="3.0" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M250 112 C 248 85, 268 55, 280 30 C 288 45, 303 70, 288 120 Z" fill="#B5562B" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M280 30 l-10 -12 M280 30 l2 -16 M280 30 l12 -12" stroke="#3B2A20" stroke-width="3.0" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Kopf -->
+  <path d="M110 170 C 105 110, 150 85, 205 85 C 260 85, 305 110, 300 170
+           C 298 225, 262 255, 205 255 C 148 255, 112 225, 110 170 Z" fill="#B5562B" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- helle Schnauze/Wangen -->
+  <path d="M150 205 C 150 175, 260 175, 260 205 C 262 240, 148 240, 150 205 Z"
+        fill="#F3D9B8" stroke="#3B2A20" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Augen -->
+  <ellipse cx="165" cy="165" rx="20" ry="24" fill="#3B2A20" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <ellipse cx="245" cy="165" rx="20" ry="24" fill="#3B2A20" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="172" cy="156" r="6" fill="#ffffff" stroke="#3B2A20" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="252" cy="156" r="6" fill="#ffffff" stroke="#3B2A20" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Nase & Mund -->
+  <path d="M195 195 C 195 188, 215 188, 215 195 C 215 202, 205 207, 205 207 C 205 207, 195 202, 195 195 Z"
+        fill="#5A3424" stroke="#3B2A20" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M205 207 L 205 215 M 205 215 C 198 225, 186 222, 184 214 M 205 215 C 212 225, 224 222, 226 214"
+        fill="none" stroke="#3B2A20" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Bäckchen -->
+  <ellipse cx="140" cy="205" rx="13" ry="8" fill="#E9967A" stroke="none" opacity="0.7"/>
+  <ellipse cx="270" cy="205" rx="13" ry="8" fill="#E9967A" stroke="none" opacity="0.7"/>
+  <!-- Schal -->
+  <path d="M125 245 C 160 275, 250 275, 285 245 C 292 258, 290 272, 282 280 C 250 300, 160 300, 128 280
+           C 120 272, 118 258, 125 245 Z" fill="#E3A928" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M245 285 C 255 315, 250 340, 262 360 L 290 350 C 280 330, 282 305, 272 282 Z" fill="#E3A928" stroke="#3B2A20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M262 360 l-4 12 M 272 356 l-2 13 M 282 352 l0 13 M 290 350 l3 12" stroke="#3B2A20" stroke-width="3.0" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M160 270 l0 22 M185 274 l0 24 M210 275 l0 24 M235 273 l0 22" stroke="#3B2A20" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round"/>
+</g></svg>
+    <div><h1 id="t-title"></h1><p id="t-hello"></p></div>
+  </header>
+  <div id="nostore" class="banner" hidden></div>
+  <nav role="tablist">
+    <button role="tab" data-tab="sp" aria-selected="true" id="tab-sp"></button>
+    <button role="tab" data-tab="hw" aria-selected="false" id="tab-hw"></button>
+    <button role="tab" data-tab="st" aria-selected="false" id="tab-st"></button>
+    <button role="tab" data-tab="pa" aria-selected="false" id="tab-pa" class="parent"></button>
+  </nav>
+
+  <section id="sp" class="on">
+    <h2 id="t-planTitle"></h2>
+    <div class="scroll"><table id="plan" aria-describedby="t-planTitle"></table></div>
+    <div class="row-btns">
+      <button class="btn" id="addRow"></button>
+      <button class="btn" id="delRow"></button>
+    </div>
+  </section>
+
+  <section id="hw">
+    <h2 id="t-hwTitle"></h2>
+    <form class="hw-form" id="hwForm">
+      <input type="text" id="hwText" maxlength="60" autocomplete="off">
+      <select id="hwSubj"></select>
+      <button class="btn main" type="submit" id="hwAdd"></button>
+    </form>
+    <ul class="hw" id="hwList"></ul>
+    <label class="tgl"><input type="checkbox" id="hwHide"> <span id="t-hwHide"></span></label>
+  </section>
+
+  <section id="st">
+    <h2 id="t-stTitle"></h2>
+    <p class="big" id="stCount"></p>
+    <p id="t-stHint"></p>
+    <div class="stickers" id="stGrid"></div>
+  </section>
+
+  <section id="pa"><div id="paBody"></div></section>
+
+  <footer id="t-footer"></footer>
+</div>
+
+<script>
+"use strict";
+const CFG = {"key": "nele-stundenplan-v1", "days": ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"], "subjects": [{"id": "de", "n": "Deutsch", "e": "📖", "c": "#F9D9C9"}, {"id": "ma", "n": "Mathe", "e": "🔢", "c": "#D6E6F5"}, {"id": "su", "n": "Sachunterricht", "e": "🌱", "c": "#DDEBC8"}, {"id": "en", "n": "Englisch", "e": "💬", "c": "#E9DDF3"}, {"id": "sp", "n": "Sport", "e": "⚽", "c": "#FBE6B3"}, {"id": "mu", "n": "Musik", "e": "🎵", "c": "#F6D6E4"}, {"id": "ku", "n": "Kunst", "e": "🎨", "c": "#FCE7D2"}, {"id": "re", "n": "Religion / Ethik", "e": "🕊️", "c": "#E3E8EE"}, {"id": "pa", "n": "Pause", "e": "🍎", "c": "#EFEFE3", "noHw": true}, {"id": "fr", "n": "Frei", "e": "☀️", "c": "#FFF6D6", "noHw": true}], "cheers": ["Schnipp, schnapp – fertig! Super gemacht!", "Hurra, eine Eichel für deinen Vorrat!", "Toll! Fritzi würde dir glatt einen Knopf schenken.", "Weiter so! Dein Eichel-Vorrat wächst und wächst."], "milestones": {"5": "5 Eicheln! Du bist ein echter Sammel-Profi!", "10": "10 Eicheln! Oma Ula ist richtig stolz auf dich.", "25": "25 Eicheln! So einen Vorrat hat nicht mal Nele.", "50": "50 Eicheln! Daraus könnte ein ganzer Wald wachsen."}, "sticker": "🌰", "stickerGold": "⭐", "shopUrl": "", "t": {"appTitle": "Neles Stundenplan", "hello": "Hallo! Ich bin Nele 🐿️ Tippe auf ein Feld und trag dein Fach ein.", "tabs": ["📅 Stundenplan", "✏️ Hausaufgaben", "🌰 Sticker", "Für Eltern"], "planTitle": "Mein Stundenplan", "lesson": "Stunde", "addRow": "+ Stunde", "removeRow": "– Stunde", "pickTitle": "Welches Fach?", "customLabel": "Oder ein eigenes Fach:", "customPh": "z. B. Schwimmen", "clear": "Feld leeren", "cancel": "Abbrechen", "ok": "Fertig", "hwTitle": "Meine Hausaufgaben", "hwPh": "Was musst du machen?", "hwAdd": "Dazu", "anySubj": "Fach (optional)", "hwEmpty": "Keine Hausaufgaben – Zeit zum Spielen! 🍂", "hwHide": "Erledigte ausblenden", "hwDelete": "Löschen", "hwCheck": "Erledigt", "stTitle": "Deine Eicheln", "stCount1": "Du hast {n} Eichel gesammelt!", "stCountN": "Du hast {n} Eicheln gesammelt!", "stHint": "Für jede erledigte Hausaufgabe bekommst du eine Eichel. Jede zehnte ist ein Stern!", "stickerWon": "Eine Eichel für dich!", "gateTitle": "Nur für Erwachsene", "gateQ": "Bitte rechnen: {a} × {b} = ?", "gateWrong": "Das stimmt leider nicht.", "paTitle": "Für Eltern", "privTitle": "Datenschutz in einfachen Worten", "privText": ["Alles, was euer Kind hier einträgt, bleibt nur in diesem Browser auf diesem Gerät.", "Es gibt kein Konto, keine Werbung und kein Tracking. Die Einträge werden nie an einen Server geschickt – auch wir von Neles Bastelbaum sehen sie nicht.", "Löscht ihr die Browserdaten oder wechselt das Gerät, sind die Einträge weg. Nele ist eine erfundene Figur."], "pinTitle": "PIN für die App", "pinNote": "Die PIN schützt nur vor neugierigen Geschwistern und ist keine echte Sicherheit. Bitte keine Geheimnisse, Adressen oder Telefonnummern eintragen.", "pinSetBtn": "PIN festlegen", "pinRemove": "PIN entfernen", "pinRemoved": "PIN entfernt.", "pinNew": "Neue PIN (4 Ziffern)", "pinRepeat": "PIN wiederholen", "pinMismatch": "Die PINs sind verschieden. Nochmal!", "pinSaved": "PIN gespeichert.", "pinEnter": "Gib deine PIN ein", "pinWrong": "Falsche PIN. Probier's nochmal.", "pinForgot": "PIN vergessen? (Erwachsene)", "pinBack": "Löschen", "printTitle": "Drucken", "printNote": "Druckt nur den Stundenplan, ohne Hausaufgaben und Sticker.", "printBtn": "Stundenplan drucken", "printFail": "Drucken geht hier nicht. Öffnet die Seite in einem eigenen Browser-Tab.", "shopTitle": "Mehr Vorlagen", "shopLink": "Bastel-, Mal- und Rätselvorlagen von Nele", "delTitle": "Alles löschen", "delNote": "Entfernt Stundenplan, Hausaufgaben, Sticker und PIN von diesem Gerät.", "delBtn": "Alles löschen", "delConfirm": "Wirklich alles löschen? Das kann man nicht rückgängig machen.", "delYes": "Ja, alles löschen", "deleted": "Alles gelöscht.", "noStore": "Achtung: In diesem Browser kann nichts gespeichert werden. Deine Einträge verschwinden, wenn du die Seite schließt.", "saveFail": "Speichern hat nicht geklappt.", "footer": "Neles Bastelbaum · Nele ist eine erfundene Figur · Keine Werbung, kein Tracking, keine Anmeldung"}};
+const T = CFG.t;
+const stCount = (n) => (n === 1 ? T.stCount1 : T.stCountN).replace("{n}", n);
+const gateQ = (a, b) => T.gateQ.replace("{a}", a).replace("{b}", b);
+const MASCOT = document.querySelector("header svg").outerHTML;
+const $ = (id) => document.getElementById(id);
+const el = (tag, attrs = {}, kids = []) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "text") n.textContent = v;
+    else if (k === "html") n.innerHTML = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  for (const c of [].concat(kids)) if (c) n.append(c);
+  return n;
+};
+
+/* ---------- Speicher (nur dieses Gerät) ---------- */
+let store = null;
+try { localStorage.setItem("__probe", "1"); localStorage.removeItem("__probe"); store = localStorage; } catch (e) { store = null; }
+const fresh = () => ({ v: 1, rows: 6, plan: {}, hw: [], stickers: 0, pin: null });
+function load() {
+  try {
+    const raw = store && store.getItem(CFG.key);
+    if (raw) return Object.assign(fresh(), JSON.parse(raw));
+  } catch (e) {}
+  return fresh();
+}
+let S = load();
+function save() {
+  if (!store) return;
+  try { store.setItem(CFG.key, JSON.stringify(S)); } catch (e) { toast(T.saveFail); }
+}
+
+/* ---------- Hilfen ---------- */
+function toast(msg) {
+  const t = el("div", { class: "toast", role: "status", text: msg });
+  document.body.append(t);
+  setTimeout(() => t.remove(), 2200);
+}
+let lastFocus = null;
+function openDialog(title, build) {
+  closeDialog();
+  lastFocus = document.activeElement;
+  const box = el("div", { class: "dialog", role: "dialog", "aria-modal": "true", "aria-label": title });
+  box.append(el("h3", { text: title }));
+  const ov = el("div", { class: "overlay", id: "ov" }, box);
+  ov.addEventListener("click", (e) => { if (e.target === ov && !ov.dataset.locked) closeDialog(); });
+  document.body.append(ov);
+  build(box, ov);
+  const f = box.querySelector("input,button");
+  if (f) f.focus();
+  return ov;
+}
+function closeDialog() {
+  const ov = $("ov");
+  if (ov) ov.remove();
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
+}
+document.addEventListener("keydown", (e) => {
+  const ov = $("ov");
+  if (e.key === "Escape" && ov && !ov.dataset.locked) closeDialog();
+});
+function subj(id) { return CFG.subjects.find((s) => s.id === id); }
+function hash(pin) {
+  let h = 5381; const s = CFG.key + ":" + pin;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+
+/* ---------- Texte setzen ---------- */
+document.title = T.appTitle;
+$("t-title").textContent = T.appTitle;
+$("t-hello").textContent = T.hello;
+$("tab-sp").textContent = T.tabs[0];
+$("tab-hw").textContent = T.tabs[1];
+$("tab-st").textContent = T.tabs[2];
+$("tab-pa").textContent = T.tabs[3];
+$("t-planTitle").textContent = T.planTitle;
+$("addRow").textContent = T.addRow;
+$("delRow").textContent = T.removeRow;
+$("t-hwTitle").textContent = T.hwTitle;
+$("hwText").placeholder = T.hwPh;
+$("hwAdd").textContent = T.hwAdd;
+$("t-hwHide").textContent = T.hwHide;
+$("t-stTitle").textContent = T.stTitle;
+$("t-stHint").textContent = T.stHint;
+$("t-footer").textContent = T.footer;
+if (!store) { $("nostore").hidden = false; $("nostore").textContent = T.noStore; }
+
+/* ---------- Tabs ---------- */
+let parentOpen = false;
+function showTab(id) {
+  if (id === "pa" && !parentOpen) { parentGate(() => { parentOpen = true; showTab("pa"); }); return; }
+  for (const b of document.querySelectorAll("nav button")) b.setAttribute("aria-selected", String(b.dataset.tab === id));
+  for (const s of document.querySelectorAll("section")) s.classList.toggle("on", s.id === id);
+  if (id !== "pa") parentOpen = false;
+  render();
+}
+for (const b of document.querySelectorAll("nav button")) b.addEventListener("click", () => showTab(b.dataset.tab));
+
+/* ---------- Stundenplan ---------- */
+function renderPlan() {
+  const tbl = $("plan");
+  tbl.textContent = "";
+  const today = new Date().getDay(); // 1 = Montag
+  const head = el("tr", {}, [el("th", { text: T.lesson })]);
+  CFG.days.forEach((d, i) => head.append(el("th", { text: d, class: i + 1 === today ? "today" : "", scope: "col" })));
+  tbl.append(el("thead", {}, head));
+  const body = el("tbody");
+  for (let r = 0; r < S.rows; r++) {
+    const tr = el("tr", {}, el("td", { class: "num", text: String(r + 1) }));
+    CFG.days.forEach((d, c) => {
+      const v = S.plan[c + "-" + r];
+      const td = el("td", { class: "cell" + (v ? " filled" : ""), tabindex: "0", role: "button",
+        "aria-label": d + ", " + T.lesson + " " + (r + 1) });
+      if (v) {
+        const s = subj(v.s);
+        td.style.background = s ? s.c : "#fff";
+        td.append(el("span", { class: "e", text: s ? s.e : "✏️" }), document.createTextNode(s ? s.n : v.txt));
+      }
+      const open = () => pickSubject(c, r);
+      td.addEventListener("click", open);
+      td.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+      tr.append(td);
+    });
+    body.append(tr);
+  }
+  tbl.append(body);
+  $("delRow").disabled = S.rows <= 1;
+  $("addRow").disabled = S.rows >= 10;
+}
+function pickSubject(c, r) {
+  openDialog(CFG.days[c] + " · " + T.lesson + " " + (r + 1) + " – " + T.pickTitle, (box) => {
+    const grid = el("div", { class: "subjects" });
+    for (const s of CFG.subjects) {
+      grid.append(el("button", { style: "background:" + s.c, onclick: () => { S.plan[c + "-" + r] = { s: s.id }; save(); closeDialog(); render(); } },
+        [el("span", { class: "e", text: s.e }), document.createTextNode(s.n)]));
+    }
+    box.append(grid);
+    const inp = el("input", { type: "text", maxlength: "16", placeholder: T.customPh, "aria-label": T.customLabel });
+    const cur = S.plan[c + "-" + r];
+    if (cur && cur.txt) inp.value = cur.txt;
+    box.append(el("p", { text: T.customLabel, style: "margin:14px 0 0;font-weight:800" }), inp);
+    box.append(el("div", { class: "actions" }, [
+      el("button", { class: "btn", text: T.clear, onclick: () => { delete S.plan[c + "-" + r]; save(); closeDialog(); render(); } }),
+      el("button", { class: "btn", text: T.cancel, onclick: closeDialog }),
+      el("button", { class: "btn main", text: T.ok, onclick: () => {
+        const v = inp.value.trim();
+        if (v) { S.plan[c + "-" + r] = { s: "custom", txt: v }; save(); }
+        closeDialog(); render();
+      } }),
+    ]));
+  });
+}
+$("addRow").addEventListener("click", () => { if (S.rows < 10) { S.rows++; save(); render(); } });
+$("delRow").addEventListener("click", () => {
+  if (S.rows <= 1) return;
+  S.rows--;
+  CFG.days.forEach((_, c) => delete S.plan[c + "-" + S.rows]);
+  save(); render();
+});
+
+/* ---------- Hausaufgaben ---------- */
+function fillSubjSelect() {
+  const sel = $("hwSubj");
+  sel.textContent = "";
+  sel.append(el("option", { value: "", text: T.anySubj }));
+  for (const s of CFG.subjects.filter((s) => !s.noHw)) sel.append(el("option", { value: s.id, text: s.e + " " + s.n }));
+}
+$("hwForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const txt = $("hwText").value.trim();
+  if (!txt) { $("hwText").focus(); return; }
+  S.hw.unshift({ id: Date.now().toString(36), t: txt, s: $("hwSubj").value, d: false, earned: false });
+  if (S.hw.length > 100) S.hw.length = 100;
+  $("hwText").value = "";
+  save(); render();
+});
+$("hwHide").addEventListener("change", render);
+function renderHW() {
+  const ul = $("hwList");
+  ul.textContent = "";
+  const list = S.hw.filter((h) => !($("hwHide").checked && h.d));
+  if (!list.length) { ul.append(el("li", { class: "empty", text: T.hwEmpty })); return; }
+  for (const h of list) {
+    const s = subj(h.s);
+    const li = el("li", { class: h.d ? "done" : "" });
+    li.append(el("button", { class: "chk", text: h.d ? "✓" : "", "aria-label": T.hwCheck, "aria-pressed": String(h.d), onclick: () => toggleHW(h) }));
+    if (s) li.append(el("span", { class: "tag", style: "background:" + s.c, text: s.e + " " + s.n }));
+    li.append(el("span", { class: "txt", text: h.t }));
+    li.append(el("button", { class: "del", text: "🗑️", "aria-label": T.hwDelete, title: T.hwDelete, onclick: () => { S.hw = S.hw.filter((x) => x !== h); save(); render(); } }));
+    ul.append(li);
+  }
+}
+function toggleHW(h) {
+  h.d = !h.d;
+  if (h.d && !h.earned) { h.earned = true; S.stickers++; save(); render(); celebrate(); return; }
+  save(); render();
+}
+function celebrate() {
+  const n = S.stickers;
+  const msg = CFG.milestones[n] || CFG.cheers[n % CFG.cheers.length];
+  openDialog(T.stickerWon, (box) => {
+    box.classList.add("cheer");
+    box.insertAdjacentHTML("beforeend", MASCOT);
+    box.append(el("div", { class: "s", text: CFG.sticker }), el("p", { class: "big", text: msg }), el("p", { text: stCount(n) }));
+    box.append(el("div", { class: "actions", style: "justify-content:center" }, el("button", { class: "btn main", text: T.ok, onclick: closeDialog })));
+  });
+}
+
+/* ---------- Sticker ---------- */
+function renderStickers() {
+  $("stCount").textContent = stCount(S.stickers);
+  const g = $("stGrid");
+  g.textContent = "";
+  const shown = Math.min(S.stickers, 200);
+  for (let i = 0; i < shown; i++) g.append(el("span", { text: (i + 1) % 10 === 0 ? CFG.stickerGold : CFG.sticker, "aria-hidden": "true" }));
+}
+
+/* ---------- Eltern-Bereich ---------- */
+function parentGate(onOk, onCancel) {
+  const a = 6 + Math.floor(Math.random() * 4), b = 6 + Math.floor(Math.random() * 4);
+  const cancel = () => { closeDialog(); if (onCancel) onCancel(); };
+  openDialog(T.gateTitle, (box, ov) => {
+    if (onCancel) ov.dataset.locked = "1";
+    const inp = el("input", { type: "number", inputmode: "numeric", "aria-label": gateQ(a, b) });
+    const msg = el("p", { class: "msg", role: "alert" });
+    const check = () => { if (Number(inp.value) === a * b) { closeDialog(); onOk(); } else { msg.textContent = T.gateWrong; inp.select(); } };
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") check(); });
+    box.append(el("p", { text: gateQ(a, b), class: "big" }), inp, msg,
+      el("div", { class: "actions" }, [el("button", { class: "btn", text: T.cancel, onclick: cancel }), el("button", { class: "btn main", text: T.ok, onclick: check })]));
+  });
+}
+function renderParents() {
+  const b = $("paBody");
+  b.textContent = "";
+  b.append(el("h2", { text: T.paTitle }));
+  b.append(el("div", { class: "box" }, [el("h3", { text: T.privTitle }), ...T.privText.map((p) => el("p", { text: p }))]));
+  const pinBox = el("div", { class: "box" }, [el("h3", { text: T.pinTitle }), el("p", { text: T.pinNote })]);
+  pinBox.append(el("div", { class: "actions", style: "justify-content:flex-start" }, S.pin
+    ? el("button", { class: "btn", text: T.pinRemove, onclick: () => { S.pin = null; save(); toast(T.pinRemoved); render(); } })
+    : el("button", { class: "btn main", text: T.pinSetBtn, onclick: setPin })));
+  b.append(pinBox);
+  b.append(el("div", { class: "box" }, [el("h3", { text: T.printTitle }), el("p", { text: T.printNote }),
+    el("div", { class: "actions", style: "justify-content:flex-start" }, el("button", { class: "btn", text: T.printBtn, onclick: () => {
+      showTab("sp"); setTimeout(() => { try { window.print(); } catch (e) { toast(T.printFail); } }, 150);
+    } }))]));
+  if (CFG.shopUrl) b.append(el("div", { class: "box" }, [el("h3", { text: T.shopTitle }), el("p", {}, el("a", { href: CFG.shopUrl, rel: "noopener noreferrer", target: "_blank", text: T.shopLink }))]));
+  b.append(el("div", { class: "box" }, [el("h3", { text: T.delTitle }), el("p", { text: T.delNote }),
+    el("div", { class: "actions", style: "justify-content:flex-start" }, el("button", { class: "btn warn", text: T.delBtn, onclick: () => {
+      openDialog(T.delTitle, (box) => {
+        box.append(el("p", { text: T.delConfirm }), el("div", { class: "actions" }, [
+          el("button", { class: "btn", text: T.cancel, onclick: closeDialog }),
+          el("button", { class: "btn warn", text: T.delYes, onclick: () => { try { store && store.removeItem(CFG.key); } catch (e) {} S = fresh(); closeDialog(); toast(T.deleted); render(); } }),
+        ]));
+      });
+    } }))]));
+}
+
+/* ---------- PIN (nur Schutz vor Geschwistern) ---------- */
+function pinPad(title, onDone, opts = {}) {
+  openDialog(title, (box, ov) => {
+    if (opts.locked) ov.dataset.locked = "1";
+    let val = "";
+    const dots = el("div", { class: "dots", "aria-live": "polite" });
+    const msg = el("p", { class: "msg", role: "alert", style: "text-align:center" });
+    const draw = () => { dots.textContent = ""; for (let i = 0; i < 4; i++) dots.append(el("i", { class: i < val.length ? "f" : "" })); };
+    const press = (k) => {
+      if (k === "⌫") val = val.slice(0, -1); else if (val.length < 4) val += k;
+      draw();
+      if (val.length === 4) { const v = val; val = ""; setTimeout(() => { draw(); onDone(v, (m) => { msg.textContent = m; }); }, 120); }
+    };
+    const pad = el("div", { class: "pad" });
+    for (const k of ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"]) {
+      pad.append(k ? el("button", { text: k, "aria-label": k === "⌫" ? T.pinBack : k, onclick: () => press(k) }) : el("span"));
+    }
+    draw();
+    box.append(dots, msg, pad);
+    if (opts.extra) box.append(opts.extra);
+  });
+}
+function setPin() {
+  pinPad(T.pinNew, (first) => {
+    pinPad(T.pinRepeat, (second, err) => {
+      if (first !== second) { err(T.pinMismatch); return; }
+      S.pin = hash(first); save(); closeDialog(); toast(T.pinSaved); render();
+    });
+  });
+}
+function lockScreen() {
+  const forgot = el("div", { class: "actions", style: "justify-content:center" },
+    el("button", { class: "btn", text: T.pinForgot, onclick: () => parentGate(() => { S.pin = null; save(); toast(T.pinRemoved); render(); }, lockScreen) }));
+  pinPad(T.pinEnter, (v, err) => {
+    if (hash(v) === S.pin) { closeDialog(); render(); } else err(T.pinWrong);
+  }, { locked: true, extra: forgot });
+}
+
+/* ---------- Start ---------- */
+function render() {
+  renderPlan(); renderHW(); renderStickers();
+  if ($("pa").classList.contains("on")) renderParents();
+}
+fillSubjSelect();
+render();
+if (S.pin) lockScreen();
+</script>
+</body>
+</html>
